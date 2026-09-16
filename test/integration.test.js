@@ -70,3 +70,50 @@ test("CLI reports configuration and validation failures without secrets", () => 
   const result = spawnSync(process.execPath, ["dist/index.js"], { input: JSON.stringify({ tool: "tally_list_forms", input: {} }), encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "" } });
   assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, "CONFIGURATION_ERROR"); assert.doesNotMatch(result.stdout, /Bearer/);
 });
+
+test("MCP rejects malformed entity responses without exposing response data", async () => {
+  for (const value of [[], {}, { id: "" }, { id: "   " }, { id: 42 }]) {
+    const secret = "private-response-value";
+    const mcp = new TallyMcpAdapter({ callTool: async () => ({ ...value, secret }) });
+    await assert.rejects(mcp.getForm("f"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE" && !error.message.includes(secret));
+  }
+});
+
+test("MCP rejects malformed page responses", async () => {
+  const malformedPages = [
+    { items: {} },
+    { items: [{}], page: 1, limit: 1, hasMore: false },
+    { items: [], page: 0, limit: 10, hasMore: false },
+    { items: [], page: 1.5, limit: 10, hasMore: false },
+    { items: [], page: 1, limit: -1, hasMore: false },
+    { items: [], page: 1, limit: 10, total: -1, hasMore: false },
+    { items: [{ id: "one" }, { id: "two" }], page: 1, limit: 1, hasMore: true },
+    { items: [{ id: "one" }], page: 1, limit: 1, total: 1, hasMore: true },
+    { items: [], page: 1, limit: 10, hasMore: "no" }
+  ];
+  for (const value of malformedPages) {
+    const mcp = new TallyMcpAdapter({ callTool: async () => value });
+    await assert.rejects(mcp.listForms(), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
+  }
+});
+
+test("MCP rejects malformed webhook lists", async () => {
+  for (const value of [{ items: [] }, [{}], [{ id: "" }], "not-a-list"]) {
+    const mcp = new TallyMcpAdapter({ callTool: async () => value });
+    await assert.rejects(mcp.listWebhooks("f"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
+  }
+});
+
+test("MCP rejects malformed or mismatched delete results", async () => {
+  for (const value of [{ deleted: false, id: "s" }, { deleted: true }, { deleted: true, id: "" }, { deleted: true, id: "different" }]) {
+    const mcp = new TallyMcpAdapter({ callTool: async () => value });
+    await assert.rejects(mcp.deleteSubmission("f", "s"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
+  }
+});
+
+test("MCP rejects malformed create-webhook results", async () => {
+  for (const value of [[], {}, { id: "" }, { id: 1 }]) {
+    const mcp = new TallyMcpAdapter({ callTool: async () => value });
+    await assert.rejects(mcp.createWebhook({ formId: "f", url: "https://x.test" }), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
+  }
+});
