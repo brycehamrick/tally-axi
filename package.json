@@ -1,0 +1,23 @@
+{
+  "name": "tally-axi",
+  "version": "1.0.0",
+  "description": "An AXI integration for the public Tally API",
+  "type": "module",
+  "bin": {
+    "tally-axi": "dist/index.js"
+  },
+  "files": [
+    "axi.json",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/make-executable.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint.js",
+    "test": "npm run build && node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
