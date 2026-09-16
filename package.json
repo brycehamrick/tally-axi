@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/make-executable.js",
+    "format:check": "node scripts/check-format.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "node scripts/lint.js",
     "test": "npm run build && node --test"
@@ -19,5 +20,9 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "packageManager": "pnpm@10.28.1"
 }

@@ -1,5 +1,23 @@
 dist/
 node_modules/
+coverage/
+.cache/
+*.tsbuildinfo
 *.log
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .env*
 !.env.example
+
+# Credentials and local machine/agent configuration
+*.pem
+*.key
+*.p12
+credentials.json
+.codex/
+.claude/
+.cursor/
+.vscode/
+.idea/
