@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tally AXI"
+  short_description: "Operate Tally forms safely through Tally AXI"
+  default_prompt: "Use $tally-axi to discover and safely invoke the appropriate Tally AXI operation for this task."

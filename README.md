@@ -2,6 +2,14 @@
 
 An AXI command-line integration for Tally. It maps the current public Tally API to one narrowly scoped tool per documented operation while keeping credentials in the environment.
 
+## Agent skill
+
+The repository publishes the `tally-axi` skill from `skills/tally-axi`. Install it with the current `skills` CLI:
+
+```sh
+npx -y skills@latest add brycehamrick/tally-axi --skill tally-axi -g
+```
+
 ## Endpoint inventory
 
 | AXI tool | Public API operation | Safety |
