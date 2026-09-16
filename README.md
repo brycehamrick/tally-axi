@@ -33,6 +33,14 @@ The executable reads one request from standard input:
 {"tool":"tally_list_forms","input":{"limit":25}}
 ```
 
+Alternatively, pass the tool name and its JSON input as separate arguments:
+
+```sh
+dist/index.js --call tally_list_forms '{"limit":25}'
+```
+
+The complete syntax is `dist/index.js --call <tool> <json-input>`. Quote the JSON input as one shell argument; when it is omitted, the input defaults to `{}`.
+
 It writes exactly one JSON response. Successes use `{"ok":true,"data":...}`. Validation, upstream API, and internal failures use `{"ok":false,"error":{"code":"...","message":"..."}}` and a non-zero exit code. Run `dist/index.js --list-tools` for JSON Schema tool definitions or `dist/index.js --manifest` for integration metadata.
 
 ## Development
