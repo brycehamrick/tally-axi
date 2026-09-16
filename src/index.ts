@@ -11,6 +11,16 @@ import { validate, InputError } from "./validation.js";
 type Envelope = { tool: string; input?: unknown };
 const encode = (value: unknown) => `${JSON.stringify(value)}\n`;
 
+/** Parse untrusted request JSON without reflecting its potentially sensitive contents. */
+export function parseRequestJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new InputError("Request must be valid JSON");
+    throw error;
+  }
+}
+
 /** Invoke one narrow operation. Dependency injection keeps API and MCP behind one interface. */
 export async function invoke(request: Envelope, env = process.env, backend?: TallyOperations): Promise<unknown> {
   const definition = tools.find((item) => item.name === request.tool);
@@ -36,11 +46,14 @@ async function main(): Promise<void> {
   readConfig(process.env); const args = process.argv.slice(2);
   if (args[0] === "--list-tools") { process.stdout.write(encode({ ok: true, data: tools })); return; }
   if (args[0] === "--manifest") { const path = fileURLToPath(new URL("../axi.json", import.meta.url)); process.stdout.write(encode({ ok: true, data: JSON.parse(await readFile(path, "utf8")) })); return; }
-  let raw = "";
-  if (args[0] === "--call") raw = JSON.stringify({ tool: args[1], input: args[2] ? JSON.parse(args[2]) : {} });
-  else raw = await new Promise<string>((resolve) => { let value = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (chunk = "") => value += chunk); process.stdin.on("end", () => resolve(value)); });
-  if (!raw.trim()) throw new InputError("Provide a JSON request on stdin or use --call");
-  const request = JSON.parse(raw) as Envelope; if (!request || typeof request.tool !== "string") throw new InputError("Request must include a tool string");
+  let request: Envelope;
+  if (args[0] === "--call") request = { tool: args[1], input: args[2] ? parseRequestJson(args[2]) : {} } as Envelope;
+  else {
+    const raw = await new Promise<string>((resolve) => { let value = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (chunk = "") => value += chunk); process.stdin.on("end", () => resolve(value)); });
+    if (!raw.trim()) throw new InputError("Provide a JSON request on stdin or use --call");
+    request = parseRequestJson(raw) as Envelope;
+  }
+  if (!request || typeof request.tool !== "string") throw new InputError("Request must include a tool string");
   process.stdout.write(encode({ ok: true, data: await invoke(request) }));
 }
 

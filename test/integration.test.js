@@ -83,3 +83,24 @@ test("CLI reports configuration and validation failures without secrets", () => 
   const result = spawnSync(process.execPath, ["dist/index.js"], { input: JSON.stringify({ tool: "tally_list_forms", input: {} }), encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "" } });
   assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, "CONFIGURATION_ERROR"); assert.doesNotMatch(result.stdout, /Bearer/);
 });
+
+const assertSafeInvalidJsonResult = (result, secret) => {
+  assert.notEqual(result.status, 0);
+  const response = JSON.parse(result.stdout);
+  assert.deepEqual(response, { ok: false, error: { code: "INVALID_INPUT", message: "Request must be valid JSON" } });
+  assert.doesNotMatch(result.stdout, /SyntaxError|at .*\.(?:js|ts):\d+/);
+  assert.doesNotMatch(result.stdout, new RegExp(secret));
+  assert.equal(result.stderr, "");
+};
+
+test("CLI safely reports malformed stdin JSON", () => {
+  const secret = "sensitive-submission-value";
+  const result = spawnSync(process.execPath, ["dist/index.js"], { input: `{"tool":"tally_get_submission","input":"${secret}"`, encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "test" } });
+  assertSafeInvalidJsonResult(result, secret);
+});
+
+test("CLI safely reports malformed --call JSON", () => {
+  const secret = "sensitive-webhook-value";
+  const result = spawnSync(process.execPath, ["dist/index.js", "--call", "tally_create_webhook", `{"url":"${secret}"`], { encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "test" } });
+  assertSafeInvalidJsonResult(result, secret);
+});
