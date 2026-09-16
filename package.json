@@ -3,18 +3,23 @@
   "version": "1.0.0",
   "description": "An AXI integration for the public Tally API",
   "type": "module",
+  "packageManager": "pnpm@10.28.1",
   "bin": {
     "tally-axi": "dist/index.js"
   },
   "files": [
     "axi.json",
+    "integration.json",
     "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/make-executable.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "node scripts/lint.js",
-    "test": "npm run build && node --test"
+    "test": "pnpm run build && node --test"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
   },
   "engines": {
     "node": ">=20"

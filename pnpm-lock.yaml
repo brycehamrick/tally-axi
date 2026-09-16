@@ -5,4 +5,19 @@ settings:
   excludeLinksFromLockfile: false
 
 importers:
-  .: {}
+  .:
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+packages:
+
+  typescript@6.0.3:
+    resolution: {}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+snapshots:
+
+  typescript@6.0.3: {}
