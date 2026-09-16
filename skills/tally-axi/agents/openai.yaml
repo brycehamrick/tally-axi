@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tally AXI"
+  short_description: "Use Tally safely through its AXI integration"
+  default_prompt: "Use $tally-axi to perform the requested Tally operation safely."

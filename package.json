@@ -8,7 +8,8 @@
   },
   "files": [
     "axi.json",
-    "dist"
+    "dist",
+    "skills/tally-axi"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/make-executable.js",
