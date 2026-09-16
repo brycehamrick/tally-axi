@@ -74,7 +74,8 @@ test("CLI reports configuration and validation failures without secrets", () => 
 test("MCP rejects malformed entity responses without exposing response data", async () => {
   for (const value of [[], {}, { id: "" }, { id: "   " }, { id: 42 }]) {
     const secret = "private-response-value";
-    const mcp = new TallyMcpAdapter({ callTool: async () => ({ ...value, secret }) });
+    const response = Array.isArray(value) ? value : { ...value, secret };
+    const mcp = new TallyMcpAdapter({ callTool: async () => response });
     await assert.rejects(mcp.getForm("f"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE" && !error.message.includes(secret));
   }
 });
@@ -108,6 +109,7 @@ test("MCP rejects malformed or mismatched delete results", async () => {
   for (const value of [{ deleted: false, id: "s" }, { deleted: true }, { deleted: true, id: "" }, { deleted: true, id: "different" }]) {
     const mcp = new TallyMcpAdapter({ callTool: async () => value });
     await assert.rejects(mcp.deleteSubmission("f", "s"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
+    await assert.rejects(mcp.deleteWebhook("s"), (error) => error instanceof TallyError && error.code === "MALFORMED_RESPONSE");
   }
 });
 
