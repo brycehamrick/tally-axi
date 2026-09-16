@@ -67,6 +67,29 @@ test("destructive tools refuse absent or false confirmation before backend use",
 });
 
 test("CLI reports configuration and validation failures without secrets", () => {
-  const result = spawnSync(process.execPath, ["dist/index.js"], { input: JSON.stringify({ tool: "tally_list_forms", input: {} }), encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "" } });
+  const env = { ...process.env };
+  delete env.TALLY_API_KEY;
+  const result = spawnSync(process.execPath, ["dist/index.js"], { input: JSON.stringify({ tool: "tally_list_forms", input: {} }), encoding: "utf8", env });
   assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, "CONFIGURATION_ERROR"); assert.doesNotMatch(result.stdout, /Bearer/);
+});
+
+test("CLI metadata commands do not require configuration or expose environment values", () => {
+  const absentKeyEnv = { ...process.env };
+  delete absentKeyEnv.TALLY_API_KEY;
+  for (const flag of ["--list-tools", "--manifest"]) {
+    const result = spawnSync(process.execPath, ["dist/index.js", flag], { encoding: "utf8", env: absentKeyEnv });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).ok, true);
+  }
+
+  const credential = "metadata-must-not-expose-this-api-key";
+  const environmentValue = "metadata-must-not-expose-this-base-url";
+  for (const flag of ["--list-tools", "--manifest"]) {
+    const result = spawnSync(process.execPath, ["dist/index.js", flag], {
+      encoding: "utf8",
+      env: { ...process.env, TALLY_API_KEY: credential, TALLY_API_BASE_URL: environmentValue }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, new RegExp(`${credential}|${environmentValue}`));
+  }
 });

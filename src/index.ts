@@ -33,7 +33,7 @@ export async function invoke(request: Envelope, env = process.env, backend?: Tal
 }
 
 async function main(): Promise<void> {
-  readConfig(process.env); const args = process.argv.slice(2);
+  const args = process.argv.slice(2);
   if (args[0] === "--list-tools") { process.stdout.write(encode({ ok: true, data: tools })); return; }
   if (args[0] === "--manifest") { const path = fileURLToPath(new URL("../axi.json", import.meta.url)); process.stdout.write(encode({ ok: true, data: JSON.parse(await readFile(path, "utf8")) })); return; }
   let raw = "";
