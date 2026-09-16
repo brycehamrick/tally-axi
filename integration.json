@@ -1,0 +1,5 @@
+{
+  "name": "tally",
+  "description": "Tally forms and submissions integration",
+  "manifest": "axi.json"
+}
