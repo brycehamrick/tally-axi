@@ -4,6 +4,7 @@ export const TALLY_API_KEY_ENV = "TALLY_API_KEY";
 export interface Config {
   apiKey: string;
   apiBaseUrl?: string;
+  timeoutMs: number;
 }
 
 export class ConfigError extends Error {
@@ -17,7 +18,9 @@ export class ConfigError extends Error {
 export function readConfig(env: Record<string, string | undefined> = process.env): Config {
   const apiKey = env[TALLY_API_KEY_ENV]?.trim();
   if (!apiKey) throw new ConfigError("Set TALLY_API_KEY to an API key created in Tally settings.");
-  return { apiKey, ...(env.TALLY_API_BASE_URL ? { apiBaseUrl: env.TALLY_API_BASE_URL } : {}) };
+  const timeoutMs = Number(env.TALLY_TIMEOUT_MS ?? 10000);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 120000) throw new ConfigError("TALLY_TIMEOUT_MS must be an integer from 100 through 120000.");
+  return { apiKey, timeoutMs, ...(env.TALLY_API_BASE_URL ? { apiBaseUrl: env.TALLY_API_BASE_URL } : {}) };
 }
 
 const isAuthorizationHeader = (key: string): boolean => {

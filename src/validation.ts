@@ -26,6 +26,9 @@ export function validate(schema: JsonSchema, value: unknown): Record<string, unk
       if (typeof current !== "number" || !Number.isInteger(current)) errors.push(`${key} must be an integer`);
       else if (current < (rule.minimum as number)) errors.push(`${key} is below the minimum`);
       else if (current > (rule.maximum as number)) errors.push(`${key} exceeds the maximum`);
+    } else if (rule.type === "boolean") {
+      if (typeof current !== "boolean") errors.push(`${key} must be a boolean`);
+      else if (rule.const !== undefined && current !== rule.const) errors.push(`${key} must be true`);
     }
   }
   if (errors.length) throw new InputError("Invalid tool input", { errors });

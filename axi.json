@@ -16,6 +16,11 @@
       "description": "Optional API base URL override.",
       "required": false,
       "default": "https://api.tally.so"
+    },
+    "TALLY_TIMEOUT_MS": {
+      "description": "Optional HTTP timeout in milliseconds (100-120000).",
+      "required": false,
+      "default": "10000"
     }
   },
   "tools": "dist/tools.json"
