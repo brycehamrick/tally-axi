@@ -84,12 +84,18 @@ test("CLI metadata commands do not require configuration or expose environment v
 
   const credential = "metadata-must-not-expose-this-api-key";
   const environmentValue = "metadata-must-not-expose-this-base-url";
+  const unrelatedEnvironmentValue = "metadata-must-not-expose-unrelated-environment";
   for (const flag of ["--list-tools", "--manifest"]) {
     const result = spawnSync(process.execPath, ["dist/index.js", flag], {
       encoding: "utf8",
-      env: { ...process.env, TALLY_API_KEY: credential, TALLY_API_BASE_URL: environmentValue }
+      env: {
+        ...process.env,
+        AXI_METADATA_SENTINEL: unrelatedEnvironmentValue,
+        TALLY_API_KEY: credential,
+        TALLY_API_BASE_URL: environmentValue
+      }
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.doesNotMatch(result.stdout, new RegExp(`${credential}|${environmentValue}`));
+    assert.doesNotMatch(result.stdout, new RegExp(`${credential}|${environmentValue}|${unrelatedEnvironmentValue}`));
   }
 });
