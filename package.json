@@ -2,6 +2,10 @@
   "name": "tally-axi",
   "version": "1.0.0",
   "description": "An AXI integration for the public Tally API",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brycehamrick/tally-axi.git"
+  },
   "type": "module",
   "bin": {
     "tally-axi": "dist/index.js"

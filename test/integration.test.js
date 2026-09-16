@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import { TallyApiAdapter } from "../dist/tally/api.js";
 import { TallyHttpClient } from "../dist/tally/http.js";
 import { TallyError } from "../dist/tally/errors.js";
@@ -8,7 +9,8 @@ import { TallyMcpAdapter } from "../dist/tally/mcp.js";
 import { invoke } from "../dist/index.js";
 
 const json = (value, init = {}) => new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" }, ...init });
-const mockApi = (responses) => { const calls = []; const fetch = async (url, options) => { calls.push({ url: String(url), options }); const next = responses.shift(); return typeof next === "function" ? next(url, options) : next; }; return { api: new TallyApiAdapter("secret", { fetch, sleep: async () => {} }), calls }; };
+const SYNTHETIC_TEST_API_KEY = "tally_test_synthetic_key_not_valid_00000000";
+const mockApi = (responses) => { const calls = []; const fetch = async (url, options) => { calls.push({ url: String(url), options }); const next = responses.shift(); return typeof next === "function" ? next(url, options) : next; }; return { api: new TallyApiAdapter(SYNTHETIC_TEST_API_KEY, { fetch, sleep: async () => {} }), calls }; };
 
 test("contracts every public API operation and normalizes output", async () => {
   const { api, calls } = mockApi([
@@ -28,10 +30,21 @@ test("contracts every public API operation and normalizes output", async () => {
   assert.ok(calls.every((x) => !JSON.stringify(x).includes("response-headers")));
 });
 
-test("MCP adapter exposes every equivalent operation through the shared contract", async () => {
-  const calls = []; const mcp = new TallyMcpAdapter({ callTool: async (name, args) => { calls.push([name, args]); if (name.startsWith("list_")) return name === "list_webhooks" ? [] : { items: [], page: 1, limit: 0, hasMore: false }; if (name.startsWith("delete_")) return { deleted: true, id: args.webhookId ?? args.submissionId }; return { id: "x" }; } });
-  await mcp.listForms(); await mcp.getForm("f"); await mcp.listSubmissions("f"); await mcp.getSubmission("f", "s"); await mcp.deleteSubmission("f", "s"); await mcp.listWebhooks("f"); await mcp.createWebhook({ formId: "f", url: "https://x.test" }); await mcp.deleteWebhook("w");
-  assert.deepEqual(calls.map((x) => x[0]), ["list_forms","get_form","list_submissions","get_submission","delete_submission","list_webhooks","create_webhook","delete_webhook"]);
+test("MCP adapter follows the sanitized upstream tools/list fixture", async () => {
+  const fixture = JSON.parse(await readFile(new URL("fixtures/tally-mcp-tools-list.json", import.meta.url), "utf8"));
+  const contracts = new Map(fixture.tools.map((tool) => [tool.name, tool.inputSchema]));
+  const calls = []; const mcp = new TallyMcpAdapter({ callTool: async (name, args) => { calls.push([name, args]); return name === "list_workspaces" ? [] : name.startsWith("list_") ? { items: [], page: 1, limit: 0, hasMore: false } : { id: "placeholder" }; } });
+  await mcp.listWorkspaces(); await mcp.listForms("workspace-placeholder", { page: 2, limit: 25 }); await mcp.getForm("form-placeholder"); await mcp.listSubmissions("form-placeholder", { limit: 10 }); await mcp.getSubmission("submission-placeholder");
+  assert.deepEqual(calls.map(([name]) => name), [...contracts.keys()]);
+  for (const [name, args] of calls) {
+    const schema = contracts.get(name); assert.ok(schema, `fixture contains ${name}`);
+    assert.ok(Object.keys(args).every((key) => key in schema.properties), `${name} uses only upstream argument names`);
+  }
+  assert.deepEqual(calls[1][1], { workspace_id: "workspace-placeholder", page: 2, limit: 25 });
+  assert.deepEqual(calls[2][1], { form_id: "form-placeholder" });
+  assert.deepEqual(calls[4][1], { submission_id: "submission-placeholder" });
+  assert.doesNotMatch(JSON.stringify(fixture), /secret|response|@|https:\/\/.*hook/i);
+  assert.equal("deleteSubmission" in mcp, false); assert.equal("listWebhooks" in mcp, false);
 });
 
 test("paginates deterministically and rejects malformed success responses", async () => {
@@ -42,7 +55,7 @@ test("paginates deterministically and rejects malformed success responses", asyn
 
 test("maps HTTP failures and redacts credentials", async () => {
   for (const [status, code] of [[401,"AUTHENTICATION_FAILED"],[403,"AUTHORIZATION_FAILED"],[404,"NOT_FOUND"],[422,"VALIDATION_FAILED"],[418,"UPSTREAM_ERROR"]]) {
-    const secret = "secret"; const client = new TallyHttpClient(secret, { maxRetries: 0, fetch: async () => json({ Authorization: `Bearer ${secret}`, message: secret }, { status }) });
+    const secret = SYNTHETIC_TEST_API_KEY; const client = new TallyHttpClient(secret, { maxRetries: 0, fetch: async () => json({ Authorization: `Bearer ${secret}`, message: secret }, { status }) });
     await assert.rejects(client.request("GET", "forms"), (e) => e.code === code && !JSON.stringify(e.details).includes(secret) && e.details.Authorization === "[REDACTED]");
   }
 });
@@ -69,4 +82,25 @@ test("destructive tools refuse absent or false confirmation before backend use",
 test("CLI reports configuration and validation failures without secrets", () => {
   const result = spawnSync(process.execPath, ["dist/index.js"], { input: JSON.stringify({ tool: "tally_list_forms", input: {} }), encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "" } });
   assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, "CONFIGURATION_ERROR"); assert.doesNotMatch(result.stdout, /Bearer/);
+});
+
+const assertSafeInvalidJsonResult = (result, secret) => {
+  assert.notEqual(result.status, 0);
+  const response = JSON.parse(result.stdout);
+  assert.deepEqual(response, { ok: false, error: { code: "INVALID_INPUT", message: "Request must be valid JSON" } });
+  assert.doesNotMatch(result.stdout, /SyntaxError|at .*\.(?:js|ts):\d+/);
+  assert.doesNotMatch(result.stdout, new RegExp(secret));
+  assert.equal(result.stderr, "");
+};
+
+test("CLI safely reports malformed stdin JSON", () => {
+  const secret = "sensitive-submission-value";
+  const result = spawnSync(process.execPath, ["dist/index.js"], { input: `{"tool":"tally_get_submission","input":"${secret}"`, encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "test" } });
+  assertSafeInvalidJsonResult(result, secret);
+});
+
+test("CLI safely reports malformed --call JSON", () => {
+  const secret = "sensitive-webhook-value";
+  const result = spawnSync(process.execPath, ["dist/index.js", "--call", "tally_create_webhook", `{"url":"${secret}"`], { encoding: "utf8", env: { ...process.env, TALLY_API_KEY: "test" } });
+  assertSafeInvalidJsonResult(result, secret);
 });
