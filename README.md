@@ -1,6 +1,21 @@
 # Tally AXI
 
-An AXI command-line integration for Tally. It exposes form, submission, and webhook operations while keeping credentials in the environment.
+An AXI command-line integration for Tally. It maps the current public Tally API to one narrowly scoped tool per documented operation while keeping credentials in the environment.
+
+## Endpoint inventory
+
+| AXI tool | Public API operation | Safety |
+| --- | --- | --- |
+| `tally_list_forms` | `GET /forms` | Paginated read |
+| `tally_get_form` | `GET /forms/{formId}` | Read |
+| `tally_list_submissions` | `GET /forms/{formId}/submissions` | Paginated read |
+| `tally_get_submission` | `GET /forms/{formId}/submissions/{submissionId}` | Read |
+| `tally_delete_submission` | `DELETE /forms/{formId}/submissions/{submissionId}` | Permanent; `confirm: true` required |
+| `tally_list_webhooks` | `GET /forms/{formId}/webhooks` | Read |
+| `tally_create_webhook` | `POST /forms/{formId}/webhooks` | Write |
+| `tally_delete_webhook` | `DELETE /webhooks/{webhookId}` | Permanent; `confirm: true` required |
+
+This deliberately does not invent form creation/editing operations that are not in Tally's public API reference.
 
 ## Setup
 
@@ -30,3 +45,13 @@ pnpm test
 ```
 
 `TALLY_API_BASE_URL` may be set for testing against a compatible server. It defaults to `https://api.tally.so`.
+
+## Backends and MCP
+
+The command-line executable uses the **public API backend by default**. `TallyApiAdapter` and `TallyMcpAdapter` both implement the shared `TallyOperations` interface in `src/tally/models.ts`. Applications that already have an MCP host can select MCP by constructing `TallyMcpAdapter` with the host's authenticated `callTool` function and passing that adapter to `invoke`. This follows Tally's hosted-MCP model: the MCP host performs the documented server connection and OAuth negotiation. This package intentionally does not guess at, or reimplement, the transport/authentication handshake and never treats a Tally API key as an MCP bearer token.
+
+The MCP adapter maps equivalent operations to Tally's operation tool names. Backend selection is dependency injection rather than an environment toggle, so an unsupported hand-written MCP transport can never silently replace the API backend.
+
+## Reliability and data handling
+
+Requests time out after 10 seconds by default (`TALLY_TIMEOUT_MS` can select 100–120000 ms). Safe reads retry at most twice for network failures, HTTP 429, and HTTP 5xx responses. Writes and deletes are never retried. `Retry-After` is honored with a 30-second cap. Responses are normalized to typed entities, pages, webhook arrays, or minimal deletion receipts; response headers and credentials are never returned. Upstream diagnostic bodies are recursively redacted.
