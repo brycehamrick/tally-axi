@@ -1,3 +1,5 @@
+import { redactSecrets } from "./config.js";
+
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly details?: unknown) { super(message); }
 }
@@ -14,7 +16,7 @@ export class TallyClient {
     const text = await response.text();
     let payload: unknown = null;
     if (text) { try { payload = JSON.parse(text); } catch { payload = { message: text }; } }
-    if (!response.ok) throw new ApiError("Tally API request failed", response.status, payload);
+    if (!response.ok) throw new ApiError("Tally API request failed", response.status, redactSecrets(payload, [this.apiKey]));
     return payload;
   }
 }

@@ -4,7 +4,13 @@ An AXI command-line integration for Tally. It exposes form, submission, and webh
 
 ## Setup
 
-Use Node.js 20 or newer, set `TALLY_API_KEY`, and run `pnpm build`. Do not put credentials or account identifiers in this repository.
+Use Node.js 20 or newer and run `pnpm build`. Create an API key in **Tally settings**, then inject it through the `TALLY_API_KEY` environment variable:
+
+```sh
+export TALLY_API_KEY="your_tally_api_key_here"
+```
+
+The process exits at startup with a configuration error if the variable is missing, empty, or whitespace-only. Never pass the API key as a command argument or save it in repository files. Local `.env*` files are ignored as an additional safeguard; `.env.example` is a sanitized template and contains no usable credential.
 
 The executable reads one request from standard input:
 

@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { TallyClient, ApiError } from "./client.js";
+import { ConfigError, readConfig } from "./config.js";
 import { tools } from "./tools.js";
 import { validate, InputError } from "./validation.js";
 
@@ -15,12 +16,11 @@ const query = (input: Record<string, unknown>) => {
 };
 
 export async function invoke(request: Envelope, env = process.env): Promise<unknown> {
+  const config = readConfig(env);
   const definition = tools.find((item) => item.name === request.tool);
   if (!definition) throw new InputError("Unknown tool", { tool: request.tool });
   const input = validate(definition.inputSchema, request.input ?? {});
-  const apiKey = env.TALLY_API_KEY;
-  if (!apiKey) throw new InputError("TALLY_API_KEY is required");
-  const client = new TallyClient(apiKey, env.TALLY_API_BASE_URL);
+  const client = new TallyClient(config.apiKey, config.apiBaseUrl);
   const form = segment(input.formId);
   const submission = segment(input.submissionId);
   switch (request.tool) {
@@ -37,6 +37,8 @@ export async function invoke(request: Envelope, env = process.env): Promise<unkn
 }
 
 async function main(): Promise<void> {
+  // Validate credentials before accepting commands so configuration errors fail at startup.
+  readConfig(process.env);
   const args = process.argv.slice(2);
   if (args[0] === "--list-tools") { process.stdout.write(encode({ ok: true, data: tools })); return; }
   if (args[0] === "--manifest") {
@@ -53,9 +55,9 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main().catch((error: unknown) => {
-  const known = error instanceof InputError || error instanceof ApiError;
+  const known = error instanceof InputError || error instanceof ApiError || error instanceof ConfigError;
   const status = error instanceof ApiError ? error.status : undefined;
   const details = error instanceof InputError || error instanceof ApiError ? error.details : undefined;
-  process.stdout.write(encode({ ok: false, error: { code: error instanceof InputError ? "INVALID_INPUT" : error instanceof ApiError ? "TALLY_API_ERROR" : "INTERNAL_ERROR", message: known ? error.message : "Unexpected error", ...(status ? { status } : {}), ...(details === undefined ? {} : { details }) } }));
+  process.stdout.write(encode({ ok: false, error: { code: error instanceof ConfigError ? "CONFIGURATION_ERROR" : error instanceof InputError ? "INVALID_INPUT" : error instanceof ApiError ? "TALLY_API_ERROR" : "INTERNAL_ERROR", message: known ? error.message : "Unexpected error", ...(status ? { status } : {}), ...(details === undefined ? {} : { details }) } }));
   process.exitCode = 1;
 });
