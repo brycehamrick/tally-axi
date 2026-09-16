@@ -8,7 +8,8 @@ import { TallyMcpAdapter } from "../dist/tally/mcp.js";
 import { invoke } from "../dist/index.js";
 
 const json = (value, init = {}) => new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" }, ...init });
-const mockApi = (responses) => { const calls = []; const fetch = async (url, options) => { calls.push({ url: String(url), options }); const next = responses.shift(); return typeof next === "function" ? next(url, options) : next; }; return { api: new TallyApiAdapter("secret", { fetch, sleep: async () => {} }), calls }; };
+const SYNTHETIC_TEST_API_KEY = "tally_test_synthetic_key_not_valid_00000000";
+const mockApi = (responses) => { const calls = []; const fetch = async (url, options) => { calls.push({ url: String(url), options }); const next = responses.shift(); return typeof next === "function" ? next(url, options) : next; }; return { api: new TallyApiAdapter(SYNTHETIC_TEST_API_KEY, { fetch, sleep: async () => {} }), calls }; };
 
 test("contracts every public API operation and normalizes output", async () => {
   const { api, calls } = mockApi([
@@ -42,7 +43,7 @@ test("paginates deterministically and rejects malformed success responses", asyn
 
 test("maps HTTP failures and redacts credentials", async () => {
   for (const [status, code] of [[401,"AUTHENTICATION_FAILED"],[403,"AUTHORIZATION_FAILED"],[404,"NOT_FOUND"],[422,"VALIDATION_FAILED"],[418,"UPSTREAM_ERROR"]]) {
-    const secret = "secret"; const client = new TallyHttpClient(secret, { maxRetries: 0, fetch: async () => json({ Authorization: `Bearer ${secret}`, message: secret }, { status }) });
+    const secret = SYNTHETIC_TEST_API_KEY; const client = new TallyHttpClient(secret, { maxRetries: 0, fetch: async () => json({ Authorization: `Bearer ${secret}`, message: secret }, { status }) });
     await assert.rejects(client.request("GET", "forms"), (e) => e.code === code && !JSON.stringify(e.details).includes(secret) && e.details.Authorization === "[REDACTED]");
   }
 });
