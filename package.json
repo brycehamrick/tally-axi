@@ -1,28 +1,50 @@
 {
   "name": "tally-axi",
-  "version": "1.0.0",
-  "description": "An AXI integration for the public Tally API",
+  "version": "0.1.0",
+  "description": "AXI-compliant CLI for Tally - read forms and submissions, manage webhooks, with token-efficient TOON output over the Tally REST API.",
   "type": "module",
-  "packageManager": "pnpm@10.28.1",
+  "license": "MIT",
+  "author": "Bryce Hamrick",
+  "keywords": [
+    "axi",
+    "tally",
+    "forms",
+    "submissions",
+    "webhooks",
+    "cli",
+    "agent",
+    "toon"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brycehamrick/tally-axi.git"
+  },
   "bin": {
-    "tally-axi": "dist/index.js"
+    "tally-axi": "bin/tally-axi.js"
   },
   "files": [
-    "axi.json",
-    "integration.json",
-    "dist"
+    "bin",
+    "dist",
+    "skills",
+    "README.md",
+    "LICENSE"
   ],
-  "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/make-executable.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "node scripts/lint.js",
-    "test": "pnpm run build && node --test"
-  },
-  "devDependencies": {
-    "typescript": "6.0.3"
-  },
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint.js",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "axi-sdk-js": "^0.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
 }

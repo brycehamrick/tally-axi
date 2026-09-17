@@ -3,14 +3,18 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM"],
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
+    "lib": ["ES2022"],
+    "types": ["node"],
     "outDir": "dist",
     "rootDir": "src",
-    "declaration": true,
-    "sourceMap": true,
-    "skipLibCheck": true
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "sourceMap": false,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"]
 }
