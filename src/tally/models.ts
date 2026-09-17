@@ -1,15 +1,45 @@
 export type JsonObject = Record<string, unknown>;
 
-export interface PageRequest { page?: number; limit?: number }
-export interface Page<T> { items: T[]; page: number; limit: number; hasMore: boolean; total?: number }
-export interface FormSummary extends JsonObject { id: string; name?: string; status?: string }
+export interface PageRequest {
+  page?: number;
+  limit?: number;
+}
+export interface Page<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  total?: number;
+}
+export interface FormSummary extends JsonObject {
+  id: string;
+  name?: string;
+  status?: string;
+}
 export interface Form extends FormSummary {}
-export interface SubmissionSummary extends JsonObject { id: string; formId?: string; submittedAt?: string }
+export interface SubmissionSummary extends JsonObject {
+  id: string;
+  formId?: string;
+  submittedAt?: string;
+}
 export interface Submission extends SubmissionSummary {}
-export interface Webhook extends JsonObject { id: string; formId?: string; url?: string; event?: string }
-export interface CreateWebhookRequest { formId: string; url: string; event?: "FORM_RESPONSE" }
-export interface DeleteResult { deleted: true; id: string }
+export interface Webhook extends JsonObject {
+  id: string;
+  formId?: string;
+  url?: string;
+  event?: string;
+}
+export interface CreateWebhookRequest {
+  formId: string;
+  url: string;
+  event?: "FORM_RESPONSE";
+}
+export interface DeleteResult {
+  deleted: true;
+  id: string;
+}
 
+/** The public Tally REST API surface this CLI maps to. */
 export interface TallyOperations {
   listForms(request?: PageRequest): Promise<Page<FormSummary>>;
   getForm(formId: string): Promise<Form>;

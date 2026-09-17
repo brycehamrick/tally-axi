@@ -1,8 +1,24 @@
-export type TallyErrorCode = "AUTHENTICATION_FAILED" | "AUTHORIZATION_FAILED" | "RATE_LIMITED" | "VALIDATION_FAILED" | "NOT_FOUND" | "TRANSIENT_FAILURE" | "TIMEOUT" | "MALFORMED_RESPONSE" | "UPSTREAM_ERROR" | "CONFIRMATION_REQUIRED";
+export type TallyErrorCode =
+  | "AUTHENTICATION_FAILED"
+  | "AUTHORIZATION_FAILED"
+  | "RATE_LIMITED"
+  | "VALIDATION_FAILED"
+  | "NOT_FOUND"
+  | "TRANSIENT_FAILURE"
+  | "TIMEOUT"
+  | "MALFORMED_RESPONSE"
+  | "UPSTREAM_ERROR";
 
 export class TallyError extends Error {
-  constructor(public readonly code: TallyErrorCode, message: string, public readonly status?: number, public readonly details?: unknown, public readonly retryAfterMs?: number) {
-    super(message); this.name = "TallyError";
+  constructor(
+    public readonly code: TallyErrorCode,
+    message: string,
+    public readonly status?: number,
+    public readonly details?: unknown,
+    public readonly retryAfterMs?: number,
+  ) {
+    super(message);
+    this.name = "TallyError";
   }
 }
 
